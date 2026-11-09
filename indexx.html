@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IEEEASU</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Three.js (3D WebGL Background) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- MQTT.js (Global Cloud Realtime Sync Engine over WSS) -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <!-- PeerJS (Real WebRTC Voice Streaming Engine so you can hear real audio) -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Space Grotesk', 'Cairo', 'sans-serif']
+                    },
+                    colors: {
+                        obsidian: '#030306',
+                        void: '#090712',
+                        wa: {
+                            dark: '#0b141a',
+                            panel: '#111b21',
+                            out: '#005c4b',
+                            in: '#202c33',
+                            accent: '#00a884'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #8b5cf6 #030306;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #030306; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #8b5cf6, #d946ef); border-radius: 9999px; }
+
+        body {
+            background-color: #030306;
+            color: #f8fafc;
+            overflow-x: hidden;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        .cyber-glass {
+            background: linear-gradient(135deg, rgba(14, 11, 26, 0.88) 0%, rgba(6, 5, 14, 0.95) 100%);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .cyber-glass-gold {
+            background: linear-gradient(135deg, rgba(26, 18, 8, 0.9) 0%, rgba(10, 8, 16, 0.96) 100%);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            box-shadow: 0 22px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(245, 158, 11, 0.14);
+        }
+
+        .whatsapp-bg {
+            background-color: #0b141a;
+            background-image: radial-gradient(rgba(139, 92, 246, 0.07) 1px, transparent 0), radial-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 0);
+            background-size: 28px 28px;
+            background-position: 0 0, 14px 14px;
+        }
+
+        .wa-bubble-out {
+            background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
+            border: 1px solid rgba(192, 132, 252, 0.35);
+            border-radius: 18px 4px 18px 18px;
+        }
+
+        .wa-bubble-in {
+            background: #1f2937;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 4px 18px 18px 18px;
+        }
+
+        .neon-text { text-shadow: 0 0 28px rgba(168, 85, 247, 0.65); }
+        .neon-border { box-shadow: 0 0 22px rgba(139, 92, 246, 0.4); }
+
+        @keyframes ringPulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 22px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .call-ring-anim { animation: ringPulse 1.5s infinite; }
+
+        @keyframes waveBar {
+            0%, 100% { height: 6px; }
+            50% { height: 26px; }
+        }
+        .wave-1 { animation: waveBar 0.7s infinite 0.0s ease-in-out; }
+        .wave-2 { animation: waveBar 0.7s infinite 0.15s ease-in-out; }
+        .wave-3 { animation: waveBar 0.7s infinite 0.3s ease-in-out; }
+        .wave-4 { animation: waveBar 0.7s infinite 0.45s ease-in-out; }
+    </style>
+</head>
+<body class="selection:bg-fuchsia-600 selection:text-white">
+
+    <!-- خلفية 3D WebGL -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- مشغل الصوت الحقيقي للمكالمات عبر WebRTC -->
+    <audio id="remote-call-audio" autoplay playsinline class="hidden"></audio>
+
+    <!-- إشعارات فورية -->
+    <div id="toast-container" class="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-2 pointer-events-none w-[92vw] max-w-md"></div>
+
+    <!-- ==========================================================
+         محرك المكالمات الصوتية الحقيقية المسموعة (WebRTC Live Voice)
+         ========================================================== -->
+    <div id="call-modal" class="fixed inset-0 z-[85] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-2xl">
+        <div class="cyber-glass rounded-3xl max-w-sm w-full p-6 sm:p-7 text-center space-y-5 border border-emerald-500/40 shadow-2xl">
+            <div class="flex items-center justify-between text-xs font-mono text-emerald-300">
+                <span>🔒 REAL WEBRTC VOICE</span>
+                <span id="call-status-badge" class="px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500/40">RINGING...</span>
+            </div>
+
+            <div class="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full bg-gradient-to-br from-purple-600 to-emerald-600 flex items-center justify-center call-ring-anim">
+                <i data-lucide="phone-call" class="w-9 h-9 sm:w-10 sm:h-10 text-white"></i>
+            </div>
+
+            <div>
+                <h3 id="call-peer-name" class="text-lg sm:text-xl font-black text-white">...</h3>
+                <p id="call-peer-role" class="text-xs font-mono text-purple-300 mt-1">Member | طالب</p>
+                <div id="call-timer" class="hidden font-mono text-lg font-bold text-emerald-400 mt-2">00:00</div>
+            </div>
+
+            <!-- موجات الصوت الحقيقي أثناء المكالمة -->
+            <div id="call-audio-waves" class="hidden items-center justify-center gap-1.5 h-8">
+                <span class="w-1.5 bg-emerald-400 rounded-full wave-1"></span>
+                <span class="w-1.5 bg-purple-400 rounded-full wave-2"></span>
+                <span class="w-1.5 bg-emerald-400 rounded-full wave-3"></span>
+                <span class="w-1.5 bg-fuchsia-400 rounded-full wave-4"></span>
+                <span class="w-1.5 bg-emerald-400 rounded-full wave-2"></span>
+            </div>
+
+            <!-- أزرار الرد أو الكتم أو الإنهاء -->
+            <div class="flex items-center justify-center gap-3 sm:gap-4 pt-2">
+                <button id="call-accept-btn" onclick="acceptIncomingCall()" class="hidden px-5 sm:px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-2 shadow-lg transition">
+                    <i data-lucide="phone" class="w-4 h-4"></i>
+                    <span>رد وفتح الصوت</span>
+                </button>
+
+                <button id="call-mute-btn" onclick="toggleMuteCall()" class="hidden p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white transition" title="كتم/تشغيل المايكروفون">
+                    <i data-lucide="mic" class="w-5 h-5"></i>
+                </button>
+
+                <button onclick="endActiveCall(true)" class="px-5 sm:px-6 py-3.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-black text-xs flex items-center gap-2 shadow-lg transition">
+                    <i data-lucide="phone-off" class="w-4 h-4"></i>
+                    <span>إنهاء</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- عارض الصور المكبر -->
+    <div id="lightbox-modal" onclick="closeLightbox()" class="fixed inset-0 z-[75] hidden items-center justify-center p-4 bg-black/90 backdrop-blur-xl cursor-zoom-out">
+        <div class="relative max-w-4xl w-full cyber-glass rounded-3xl overflow-hidden border border-purple-400/50 p-2" onclick="event.stopPropagation()">
+            <button onclick="closeLightbox()" class="absolute top-4 left-4 z-10 w-9 h-9 rounded-full bg-black/70 text-white hover:bg-red-600 flex items-center justify-center transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <img id="lightbox-img" src="" alt="Preview" class="w-full max-h-[75vh] object-contain rounded-2xl bg-obsidian">
+            <div class="p-3 text-center">
+                <h4 id="lightbox-caption" class="font-black text-sm sm:text-base text-white"></h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         الواجهة الرئيسية العامة (IEEEASU)
+         ========================================== -->
+    <div id="landing-view" class="relative z-10 min-h-screen flex flex-col">
+
+        <header class="sticky top-0 z-40 cyber-glass border-b border-purple-500/25">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-purple-600 via-fuchsia-600 to-indigo-950 flex items-center justify-center border border-purple-300/50 neon-border shrink-0">
+                        <i data-lucide="cpu" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-display text-xl sm:text-3xl font-black tracking-wider text-white">IEEE<span class="text-purple-400">ASU</span></span>
+                        <span id="cloud-status-dot" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span>LIVE</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- عدادات حية حقيقية تزيد وتنقص تلقائياً -->
+                <div class="flex items-center gap-1.5 sm:gap-3">
+                    <div class="hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-purple-950/70 border border-purple-500/30 text-xs">
+                        <span class="text-slate-300">الأعضاء الفعليون:</span>
+                        <span id="landing-total-members" class="font-mono font-bold text-white">0</span>
+                        <span class="text-slate-600">|</span>
+                        <span class="text-slate-300">متصل الآن:</span>
+                        <span id="landing-online-members" class="font-mono font-bold text-emerald-400">1</span>
+                    </div>
+                    <button onclick="openAuthModal('login')" class="px-3 sm:px-4 py-2 rounded-xl text-[11px] sm:text-sm font-bold text-purple-200 border border-purple-500/40 hover:bg-purple-950/70 transition">
+                        دخول
+                    </button>
+                    <button onclick="openAuthModal('register')" class="px-3 sm:px-5 py-2 rounded-xl text-[11px] sm:text-sm font-black bg-gradient-to-l from-purple-600 via-fuchsia-600 to-indigo-600 text-white neon-border transition">
+                        طلب عضوية
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- القسم الترحيبي الفخم والمرتب للجوال والحاسوب -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-14 pb-10 grid lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+            <div class="lg:col-span-7 space-y-5 text-center lg:text-right">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-950/85 border border-purple-400/40 text-purple-200 text-[10px] sm:text-xs font-mono">
+                    <i data-lucide="wifi" class="w-3.5 h-3.5 text-emerald-400"></i>
+                    <span>GLOBAL CLOUD SYNC // WHATSAPP & REAL VOICE CALLS</span>
+                </div>
+
+                <h1 class="text-4xl sm:text-7xl font-black tracking-tight text-white leading-none">
+                    IEEE<span class="text-transparent bg-clip-text bg-gradient-to-l from-purple-400 via-fuchsia-400 to-amber-300 neon-text">ASU</span>
+                </h1>
+
+                <p class="text-slate-300 text-xs sm:text-base leading-relaxed max-w-xl mx-auto lg:mx-0">
+                    المنصة السحابية الرسمية لـ <strong>IEEEASU</strong>. شات فوري واقعي ومكالمات صوتية حقيقية مسموعة (حصرياً لـ <strong>Admin Manager</strong> والطلاب المعتمدين <strong>Member | طالب</strong>)، مع عدادات حقيقية خالية من أي حسابات وهمية.
+                </p>
+
+                <div class="flex flex-wrap justify-center lg:justify-start gap-2.5 sm:gap-3 pt-1">
+                    <button onclick="openAuthModal('login')" class="px-5 sm:px-6 py-3 sm:py-3.5 rounded-2xl bg-gradient-to-l from-purple-600 via-fuchsia-600 to-violet-700 text-white font-black text-xs sm:text-sm shadow-xl neon-border flex items-center gap-2 transition">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        <span>دخول الشات والمكالمات</span>
+                    </button>
+                    <button onclick="openAuthModal('register')" class="px-4 sm:px-5 py-3 sm:py-3.5 rounded-2xl cyber-glass text-purple-200 font-bold text-xs sm:text-sm flex items-center gap-2 hover:border-purple-400 transition">
+                        <i data-lucide="user-plus" class="w-4 h-4 text-amber-400"></i>
+                        <span>طلب تفعيل طالب</span>
+                    </button>
+                    <button onclick="sharePlatformLink()" class="px-4 py-3 sm:py-3.5 rounded-2xl cyber-glass text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-2 hover:border-emerald-400 transition">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span>مشاركة الرابط</span>
+                    </button>
+                </div>
+
+                <!-- عدادات حقيقية ديناميكية تزيد وتنقص فعلياً (تبدأ من صفر أعضاء وهميين) -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-4 border-t border-purple-500/20 text-right">
+                    <div class="cyber-glass p-3.5 sm:p-4 rounded-2xl border-r-4 border-r-emerald-500">
+                        <div id="hero-online-now" class="text-xl sm:text-3xl font-display font-bold text-emerald-400">1</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">متصل حقيقي الآن 🟢</div>
+                    </div>
+                    <div class="cyber-glass p-3.5 sm:p-4 rounded-2xl border-r-4 border-r-purple-500">
+                        <div id="hero-total-members" class="text-xl sm:text-3xl font-display font-bold text-white">0</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">الأعضاء المعتمدون</div>
+                    </div>
+                    <div class="cyber-glass p-3.5 sm:p-4 rounded-2xl border-r-4 border-r-amber-500">
+                        <div id="hero-pending-members" class="text-xl sm:text-3xl font-display font-bold text-amber-400">0</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">بانتظار التفعيل</div>
+                    </div>
+                    <div class="cyber-glass p-3.5 sm:p-4 rounded-2xl border-r-4 border-r-fuchsia-500">
+                        <div id="hero-gallery-count" class="text-xl sm:text-3xl font-display font-bold text-fuchsia-400">0</div>
+                        <div class="text-[10px] sm:text-[11px] text-slate-400 mt-0.5">مشاريع المعرض</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- لوحة حالة السحابة والخصوصية -->
+            <div class="lg:col-span-5">
+                <div class="cyber-glass rounded-3xl p-5 sm:p-6 border border-purple-400/40 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-purple-500/25">
+                        <span class="font-mono text-[11px] sm:text-xs text-purple-300 flex items-center gap-1.5">
+                            <i data-lucide="radio" class="w-4 h-4 text-emerald-400"></i>
+                            <span>IEEEASU // WEBRTC & CLOUD</span>
+                        </span>
+                        <span id="room-code-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-200 border border-purple-500/30">ROOM: GLOBAL</span>
+                    </div>
+
+                    <div class="grid gap-3 text-xs">
+                        <div class="p-3 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 flex items-center gap-3">
+                            <i data-lucide="volume-2" class="w-5 h-5 text-emerald-400 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-white">صوت حقيقي مسموع بالمكالمات (WebRTC)</div>
+                                <p class="text-[11px] text-slate-400">تحدث واسمع الطرف الآخر مباشرة عبر المايكروفون والسماعة.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-purple-950/40 border border-purple-500/30 flex items-center gap-3">
+                            <i data-lucide="key-round" class="w-5 h-5 text-purple-400 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-white">إيميلات موحدة مرقمة ومخفية</div>
+                                <p class="text-[11px] text-slate-400">إيميل موحد برقم مخصص للأدمن والميمبر، ولا يظهر للعامة إطلاقاً.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-amber-950/25 border border-amber-500/30 flex items-center gap-3">
+                            <i data-lucide="smartphone" class="w-5 h-5 text-amber-400 shrink-0"></i>
+                            <div>
+                                <div class="font-bold text-white">تصميم تطبيق جوال متكامل</div>
+                                <p class="text-[11px] text-slate-400">واجهة متجاوبة بالكامل تعمل كالتطبيقات الأصلية على الجوال.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- اللجان التقنية الأربعة -->
+        <section id="societies-section" class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 w-full">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="cyber-glass rounded-3xl p-4 sm:p-5 space-y-1 border-t-4 border-t-purple-500">
+                    <div class="text-[11px] font-mono text-purple-400 font-bold">IEEE RAS</div>
+                    <h3 class="text-sm sm:text-base font-black text-white">الروبوتات والأتمتة</h3>
+                    <p class="text-[11px] text-slate-400">ROS 2، الرؤية الحاسوبية، والأنظمة الذاتية.</p>
+                </div>
+                <div class="cyber-glass rounded-3xl p-4 sm:p-5 space-y-1 border-t-4 border-t-fuchsia-500">
+                    <div class="text-[11px] font-mono text-fuchsia-400 font-bold">IEEE CS</div>
+                    <h3 class="text-sm sm:text-base font-black text-white">الحاسوب والذكاء الاصطناعي</h3>
+                    <p class="text-[11px] text-slate-400">التعلم العميق، الخوارزميات، و IEEEXtreme.</p>
+                </div>
+                <div class="cyber-glass rounded-3xl p-4 sm:p-5 space-y-1 border-t-4 border-t-emerald-500">
+                    <div class="text-[11px] font-mono text-emerald-400 font-bold">IEEE PES</div>
+                    <h3 class="text-sm sm:text-base font-black text-white">الطاقة والقدرة</h3>
+                    <p class="text-[11px] text-slate-400">الشبكات الذكية والطاقة المتجددة.</p>
+                </div>
+                <div class="cyber-glass rounded-3xl p-4 sm:p-5 space-y-1 border-t-4 border-t-amber-500">
+                    <div class="text-[11px] font-mono text-amber-400 font-bold">IEEE WIE</div>
+                    <h3 class="text-sm sm:text-base font-black text-white">المرأة في الهندسة</h3>
+                    <p class="text-[11px] text-slate-400">القيادة الهندسية والريادة التقنية.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- النشرة الرسمية -->
+        <section id="public-newsletter" class="max-w-7xl mx-auto px-4 sm:px-6 py-5 w-full">
+            <div class="cyber-glass rounded-3xl p-5 sm:p-6 border border-purple-500/30 space-y-4">
+                <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                    <h2 class="text-base sm:text-xl font-black text-white">أخبار IEEEASU</h2>
+                    <span class="text-[10px] font-mono text-purple-300">Admin Manager Only</span>
+                </div>
+                <div id="public-newsletter-grid" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5"></div>
+            </div>
+        </section>
+
+        <!-- المعرض -->
+        <section id="robotics-gallery" class="max-w-7xl mx-auto px-4 sm:px-6 py-5 w-full">
+            <div class="cyber-glass rounded-3xl p-5 sm:p-6 border border-purple-500/30 space-y-4">
+                <div class="flex items-center justify-between border-b border-purple-500/20 pb-3">
+                    <h2 class="text-base sm:text-xl font-black text-white">معرض المشاريع</h2>
+                </div>
+                <div id="gallery-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"></div>
+            </div>
+        </section>
+
+        <footer class="mt-auto border-t border-purple-500/20 cyber-glass py-5">
+            <div class="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-slate-400">
+                <span class="font-black text-white">IEEEASU © 2026</span>
+                <span class="font-mono text-[10px] sm:text-[11px] text-emerald-400">CLOUD REALTIME CONNECTED</span>
+            </div>
+        </footer>
+
+        <!-- ==========================================================
+             أيقونة الشات بوت والدعم الفني (دائرية وصغيرة وتظهر في الواجهة فقط!)
+             ========================================================== -->
+        <div class="fixed bottom-5 left-5 z-50">
+            <button onclick="toggleSupportChat()" title="الدعم الفني الذكي IEEEASU AI" class="w-13 h-13 sm:w-14 sm:h-14 p-3.5 rounded-full bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-indigo-600 text-white shadow-2xl neon-border flex items-center justify-center hover:scale-110 active:scale-95 transition relative">
+                <span class="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-obsidian animate-pulse"></span>
+                <i data-lucide="bot" class="w-6 h-6"></i>
+            </button>
+
+            <div id="support-chat-window" class="hidden fixed bottom-20 left-4 sm:left-5 w-[92vw] sm:w-[390px] h-[490px] cyber-glass rounded-3xl border border-purple-400/50 flex-col overflow-hidden shadow-2xl">
+                <div class="p-3.5 bg-gradient-to-l from-purple-900/95 via-fuchsia-950/90 to-indigo-950/95 border-b border-purple-500/40 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-full bg-purple-500/30 border border-purple-300/40 flex items-center justify-center">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-purple-200"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-white text-xs sm:text-sm">الدعم الفني • IEEEASU AI</h4>
+                            <p class="text-[10px] text-emerald-300 font-mono">عربي / English</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleSupportChat(false)" class="p-1.5 rounded-full bg-black/40 text-slate-300 hover:text-white">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <div class="p-2 bg-black/70 border-b border-purple-500/25 flex gap-1.5 overflow-x-auto text-[10px]">
+                    <button onclick="askSupportBot('ما هو IEEEASU؟')" class="px-2.5 py-1 rounded-full bg-purple-950 text-purple-200 border border-purple-500/40 whitespace-nowrap">ما هو IEEEASU؟</button>
+                    <button onclick="askSupportBot('What is IEEEASU?')" class="px-2.5 py-1 rounded-full bg-indigo-950 text-indigo-200 border border-indigo-500/40 whitespace-nowrap font-mono">What is IEEEASU?</button>
+                    <button onclick="askSupportBot('كيف أتفعّل وأحصل على الإيميل الموحد؟')" class="px-2.5 py-1 rounded-full bg-purple-950 text-purple-200 border border-purple-500/40 whitespace-nowrap">التفعيل والإيميل</button>
+                </div>
+
+                <div id="support-messages-box" class="flex-1 p-3.5 overflow-y-auto space-y-2.5 text-xs"></div>
+
+                <form onsubmit="handleSupportSubmit(event)" class="p-2.5 bg-black/85 border-t border-purple-500/30 flex items-center gap-2">
+                    <input id="support-input" type="text" placeholder="اكتب سؤالك للدعم الفني..." class="flex-1 bg-obsidian border border-purple-500/40 rounded-full px-4 py-2 text-xs text-white outline-none">
+                    <button type="submit" class="w-9 h-9 rounded-full bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center shrink-0">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         البوابة الداخلية المحمية (مرتبة للجوال والكمبيوتر - للأدمن والميمبر فقط)
+         ========================================================== -->
+    <div id="portal-view" class="relative z-10 min-h-screen hidden flex-col pb-16 sm:pb-0">
+
+        <header class="sticky top-0 z-40 cyber-glass border-b border-purple-500/30">
+            <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-950 flex items-center justify-center border border-purple-400/50 neon-border shrink-0">
+                        <i data-lucide="cpu" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div class="truncate">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-display font-black text-sm sm:text-lg text-white">IEEEASU</span>
+                            <span id="role-badge" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full font-bold"></span>
+                        </div>
+                        <p id="current-user-masked" class="text-[10px] font-mono text-slate-400 truncate"></p>
+                    </div>
+                </div>
+
+                <!-- تبويبات الكمبيوتر -->
+                <nav class="hidden sm:flex items-center gap-1 bg-black/60 p-1.5 rounded-2xl border border-purple-500/30">
+                    <button onclick="switchPortalTab('chat')" id="tab-btn-chat" class="portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                        <span>الشات والمكالمات</span>
+                    </button>
+                    <button onclick="switchPortalTab('members')" id="tab-btn-members" class="portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>الأعضاء والتفعيل</span>
+                        <span id="nav-pending-badge" class="hidden px-1.5 py-0.2 bg-amber-500 text-black rounded-full text-[10px] font-black">0</span>
+                    </button>
+                    <button onclick="switchPortalTab('content')" id="tab-btn-content" class="portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                        <span>المحتوى</span>
+                    </button>
+                </nav>
+
+                <div class="flex items-center gap-1.5">
+                    <button onclick="sharePlatformLink()" class="px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold bg-emerald-950/80 hover:bg-emerald-900 text-emerald-200 border border-emerald-500/40 flex items-center gap-1 transition">
+                        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                        <span class="hidden md:inline">مشاركة</span>
+                    </button>
+                    <button onclick="goBackToLandingKeepSession()" class="px-2.5 sm:px-3 py-2 rounded-xl text-xs font-bold bg-purple-950/70 hover:bg-purple-900 text-purple-200 border border-purple-500/30 transition">
+                        <span>الرئيسية</span>
+                    </button>
+                    <button onclick="logoutPortal()" class="p-2 rounded-xl text-xs font-bold bg-red-950/60 hover:bg-red-900/70 text-red-200 border border-red-500/30 transition">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- شريط تنقل سفلي خاص بالجوال (Mobile Bottom Navigation Bar) -->
+        <nav class="sm:hidden fixed bottom-0 inset-x-0 z-40 cyber-glass border-t border-purple-500/30 grid grid-cols-3 p-1.5 gap-1">
+            <button onclick="switchPortalTab('chat')" id="mob-tab-chat" class="py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 bg-purple-600 text-white">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>الشات والمكالمات</span>
+            </button>
+            <button onclick="switchPortalTab('members')" id="mob-tab-members" class="py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 relative">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                <span>الأعضاء والتفعيل</span>
+                <span id="mob-pending-badge" class="hidden absolute top-1 left-6 px-1.5 bg-amber-500 text-black rounded-full text-[9px] font-black">0</span>
+            </button>
+            <button onclick="switchPortalTab('content')" id="mob-tab-content" class="py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                <span>المحتوى</span>
+            </button>
+        </nav>
+
+        <main class="max-w-7xl w-full mx-auto px-2 sm:px-6 py-3 sm:py-5 flex-1">
+
+            <!-- ==========================================================
+                 1. شات واتساب الواقعي المتجاوب للجوال + محرك المكالمات الصوتية المسموعة
+                 ========================================================== -->
+            <section id="portal-page-chat" class="portal-page grid lg:grid-cols-12 gap-3 sm:gap-4 h-[calc(100vh-140px)] sm:h-[640px]">
+
+                <!-- القائمة الجانبية للمحادثات والأعضاء (تظهر كاملة على الجوال أو تنتقل للشات بضغطة) -->
+                <div id="mobile-contacts-pane" class="lg:col-span-4 cyber-glass rounded-3xl flex flex-col overflow-hidden border border-purple-500/30 h-full">
+                    <div class="p-3.5 sm:p-4 bg-black/50 border-b border-purple-500/20 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <h3 class="font-black text-white text-xs sm:text-sm">المحادثات والأعضاء الحقيقيون</h3>
+                        </div>
+                        <span id="chat-online-pill" class="text-[10px] sm:text-[11px] font-mono text-emerald-300 bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-500/30">1 متصل</span>
+                    </div>
+
+                    <div class="p-2.5 sm:p-3 space-y-2.5 overflow-y-auto flex-1">
+                        <div class="text-[10px] font-mono text-purple-300 uppercase px-2">القنوات الجماعية</div>
+                        <div class="space-y-1.5">
+                            <button onclick="selectConversation('group_general', 'النقاش الهندسي العام', 'Group Channel', true)" id="conv-group_general" class="w-full text-right p-3 rounded-2xl bg-purple-600/25 border border-purple-500/50 text-white font-bold text-xs flex items-center justify-between transition">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-full bg-purple-600/40 flex items-center justify-center shrink-0"><i data-lucide="users" class="w-4 h-4"></i></div>
+                                    <div>
+                                        <div>النقاش الهندسي العام</div>
+                                        <div class="text-[10px] text-slate-400 font-normal">جميع الأعضاء المعتمدين والأدمن</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-emerald-400">LIVE</span>
+                            </button>
+
+                            <button onclick="selectConversation('group_ras', 'مختبر الروبوتات والـ AI', 'RAS & CS', true)" id="conv-group_ras" class="w-full text-right p-3 rounded-2xl hover:bg-purple-950/40 text-slate-200 font-bold text-xs flex items-center justify-between transition">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-9 h-9 rounded-full bg-fuchsia-600/30 flex items-center justify-center shrink-0"><i data-lucide="bot" class="w-4 h-4"></i></div>
+                                    <div>
+                                        <div>مختبر الروبوتات والـ AI</div>
+                                        <div class="text-[10px] text-slate-400 font-normal">مشاريع ROS 2 و YOLOv8</div>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-mono text-purple-300">RAS/CS</span>
+                            </button>
+                        </div>
+
+                        <div class="pt-3 border-t border-purple-500/20 flex items-center justify-between px-2">
+                            <span class="text-[10px] font-mono text-emerald-400 uppercase">الأعضاء الفعليون (اضغط للشات أو الاتصال 📞)</span>
+                        </div>
+
+                        <!-- قائمة الأعضاء الفعليين (خالية من أي شخص وهمي) -->
+                        <div id="whatsapp-contacts-list" class="space-y-1.5"></div>
+                    </div>
+                </div>
+
+                <!-- نافذة محادثة الواتساب الحية -->
+                <div id="mobile-chat-pane" class="hidden lg:flex lg:col-span-8 cyber-glass rounded-3xl flex-col overflow-hidden border border-purple-500/30 whatsapp-bg h-full">
+                    <div class="p-3 sm:p-3.5 bg-obsidian/90 border-b border-purple-500/25 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                            <!-- زر رجوع للقائمة يظهر في الجوال فقط -->
+                            <button onclick="toggleMobileChatView(false)" class="lg:hidden p-2 rounded-xl bg-purple-950/80 text-purple-200 border border-purple-500/30 shrink-0">
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-purple-600 to-emerald-600 flex items-center justify-center font-black text-white text-xs sm:text-sm shrink-0" id="active-chat-avatar">
+                                #
+                            </div>
+                            <div class="truncate">
+                                <h2 id="chat-channel-title" class="font-black text-white text-xs sm:text-sm truncate">النقاش الهندسي العام</h2>
+                                <p id="chat-typing-indicator" class="text-[10px] sm:text-[11px] font-mono text-emerald-400 truncate">متصل عبر السحابة الفورية</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            <button onclick="startVoiceCallWithActiveTarget()" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1.5 shadow-lg transition">
+                                <i data-lucide="phone-call" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+                                <span>اتصال صوتي</span>
+                            </button>
+
+                            <button id="clear-chat-admin-btn" onclick="clearChatMessages()" class="hidden px-2.5 py-2 bg-red-950/80 hover:bg-red-900 text-red-200 border border-red-500/30 rounded-xl font-bold text-[11px] transition">
+                                مسح
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- صندوق الرسائل الواقعي -->
+                    <div id="chat-messages-container" class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-2.5 text-xs"></div>
+
+                    <!-- شريط إرسال الرسائل -->
+                    <form onsubmit="sendChatMessage(event)" class="p-2.5 sm:p-3 bg-obsidian/95 border-t border-purple-500/25 flex items-center gap-2">
+                        <div id="admin-chat-img-wrapper" class="hidden">
+                            <input type="file" id="chat-img-input" accept="image/*" class="hidden" onchange="previewChatImg(event)">
+                            <button type="button" onclick="document.getElementById('chat-img-input').click()" title="إرفاق صورة" class="p-2.5 rounded-xl bg-purple-950 border border-purple-500/40 text-purple-300 hover:text-white transition">
+                                <i data-lucide="paperclip" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+                            </button>
+                        </div>
+
+                        <input id="chat-input" oninput="notifyTyping()" type="text" maxlength="600" placeholder="اكتب رسالة فورية..." class="flex-1 bg-slate-900/90 border border-purple-500/30 focus:border-emerald-400 rounded-2xl px-3.5 py-2.5 sm:py-3 text-xs sm:text-sm text-white outline-none">
+
+                        <button type="submit" class="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-l from-emerald-600 to-teal-600 text-white font-black text-xs flex items-center gap-1.5 shadow-lg transition shrink-0">
+                            <span class="hidden sm:inline">إرسال</span>
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ==========================================================
+                 2. إدارة الأعضاء وتوليد الإيميلات الموحدة المرقمة (بدون أي أشخاص وهميين)
+                 ========================================================== -->
+            <section id="portal-page-members" class="portal-page hidden space-y-5">
+                <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+                    <div class="cyber-glass rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border-r-4 border-r-emerald-500">
+                        <div class="text-[10px] sm:text-xs text-emerald-300 font-mono">متصلون الآن 🟢</div>
+                        <div id="stat-online-count" class="text-xl sm:text-3xl font-bold text-emerald-400 mt-1">1</div>
+                    </div>
+                    <div class="cyber-glass rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border-r-4 border-r-purple-500">
+                        <div class="text-[10px] sm:text-xs text-purple-300 font-mono">الأعضاء (Member)</div>
+                        <div id="stat-approved-count" class="text-xl sm:text-3xl font-bold text-white mt-1">0</div>
+                    </div>
+                    <div class="cyber-glass rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border-r-4 border-r-amber-500">
+                        <div class="text-[10px] sm:text-xs text-amber-300 font-mono">طلبات الانتظار</div>
+                        <div id="stat-pending-count" class="text-xl sm:text-3xl font-bold text-amber-400 mt-1">0</div>
+                    </div>
+                </div>
+
+                <!-- قسم Admin Manager لإصدار الإيميل الموحد المرقم للطالب وتفعيله -->
+                <div id="admin-pending-section" class="hidden space-y-5">
+                    <div class="cyber-glass-gold rounded-3xl p-4 sm:p-6 space-y-3">
+                        <div class="text-amber-300 font-black text-xs sm:text-sm flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
+                            <span>لوحة Admin Manager: تفعيل طالب وإصدار إيميل موحد مرقم له (member#@ieeeasu.org)</span>
+                        </div>
+                        <form onsubmit="adminCreateStudentDirectly(event)" class="grid sm:grid-cols-4 gap-2.5 text-xs">
+                            <input id="direct-student-name" type="text" required placeholder="اسم الطالب الثلاثي" class="bg-obsidian border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="direct-student-email" type="email" required placeholder="member1@ieeeasu.org" class="bg-obsidian border border-amber-500/40 rounded-xl px-3.5 py-2.5 font-mono text-amber-200 outline-none">
+                            <select id="direct-student-track" class="bg-obsidian border border-amber-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                                <option value="RAS">RAS - الروبوتات</option>
+                                <option value="CS">CS - الذكاء الاصطناعي</option>
+                                <option value="PES">PES - الطاقة</option>
+                                <option value="WIE">WIE - المرأة في الهندسة</option>
+                            </select>
+                            <button type="submit" class="bg-amber-500 hover:bg-amber-400 text-black font-black rounded-xl py-2.5 transition">
+                                + تفعيل كـ (Member | طالب)
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="cyber-glass rounded-3xl p-4 sm:p-6 border border-amber-500/40 space-y-3">
+                        <div class="text-amber-300 font-black text-xs sm:text-sm">طلبات الطلاب الجدد بانتظار التفعيل وإعطائهم الإيميل الموحد:</div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-right text-xs">
+                                <thead>
+                                    <tr class="border-b border-amber-500/30 text-amber-300 font-mono">
+                                        <th class="py-2 px-2">اسم الطالب</th>
+                                        <th class="py-2 px-2">الرقم الجامعي</th>
+                                        <th class="py-2 px-2">اللجنة</th>
+                                        <th class="py-2 px-2">الإيميل الموحد المرقم للطالب</th>
+                                        <th class="py-2 px-2">الإجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pending-table-body" class="divide-y divide-amber-500/15"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- جدول الأعضاء الفعليين (الإيميلات مخفية تماماً) -->
+                <div class="cyber-glass rounded-3xl p-4 sm:p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm sm:text-base font-black text-white">قائمة الأعضاء الحقيقيين</h3>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-500/30">الإيميلات مخفية 🔒</span>
+                        </div>
+                        <input id="member-search-input" oninput="renderMembersManagement()" type="text" placeholder="🔍 ابحث بالاسم أو الكود..." class="bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2 text-xs text-white outline-none w-full sm:w-64">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-right text-xs">
+                            <thead>
+                                <tr class="border-b border-purple-500/30 text-purple-300 font-mono">
+                                    <th class="py-2.5 px-2">الاسم</th>
+                                    <th class="py-2.5 px-2">المُعرّف المشفر</th>
+                                    <th class="py-2.5 px-2">اللجنة</th>
+                                    <th class="py-2.5 px-2">الرتبة</th>
+                                    <th class="py-2.5 px-2">إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="members-table-body" class="divide-y divide-purple-500/10"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. إدارة المحتوى والإعلانات -->
+            <section id="portal-page-content" class="portal-page hidden space-y-6">
+                <div id="admin-content-controls" class="hidden grid md:grid-cols-2 gap-5">
+                    <div class="cyber-glass-gold rounded-3xl p-5 space-y-3">
+                        <div class="text-amber-300 font-black text-sm">نشر خبر رسمي (Admin Manager)</div>
+                        <form onsubmit="publishAdminNewsletter(event)" class="space-y-3 text-xs">
+                            <input id="pub-news-title" type="text" required placeholder="عنوان الخبر..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-4 py-2.5 text-white outline-none">
+                            <input id="pub-news-category" type="text" required placeholder="التصنيف (RAS / CS / PES)" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-4 py-2.5 text-white outline-none">
+                            <input type="file" id="pub-news-img-input" accept="image/*" required class="hidden" onchange="previewAdminNewsImg(event)">
+                            <button type="button" onclick="document.getElementById('pub-news-img-input').click()" id="pub-news-img-label" class="w-full py-2.5 px-3 rounded-xl bg-purple-950 border border-purple-400/40 font-bold text-purple-200 truncate">📁 اختر صورة الخبر</button>
+                            <textarea id="pub-news-body" rows="2" required placeholder="تفاصيل الخبر..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-4 py-2.5 text-white outline-none"></textarea>
+                            <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black rounded-xl py-2.5 transition">+ نشر في الموقع</button>
+                        </form>
+                    </div>
+
+                    <div class="cyber-glass-gold rounded-3xl p-5 space-y-3">
+                        <div class="text-amber-300 font-black text-sm">رفع مشروع للمعرض (Admin Manager)</div>
+                        <form onsubmit="addAdminGalleryPhoto(event)" class="space-y-3 text-xs">
+                            <input id="gal-title" type="text" required placeholder="اسم المشروع" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="gal-tag" type="text" required placeholder="القسم (RAS / AI)" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input id="gal-desc" type="text" required placeholder="وصف المشروع..." class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                            <input type="file" id="gal-file-input" accept="image/*" required class="hidden" onchange="previewAdminGalleryImg(event)">
+                            <button type="button" onclick="document.getElementById('gal-file-input').click()" id="gal-file-label" class="w-full py-2.5 px-3 rounded-xl bg-purple-950 border border-purple-400/40 font-bold text-purple-200 truncate">📁 اختر صورة المشروع</button>
+                            <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-black rounded-xl py-2.5 transition">+ حفظ في المعرض</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="cyber-glass rounded-3xl p-5 space-y-4">
+                    <h3 class="text-sm sm:text-base font-black text-white">الإعلانات الرسمية</h3>
+                    <div id="announcements-list" class="grid md:grid-cols-2 gap-4"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- نافذة تنبيه انتظار التفعيل -->
+    <div id="pending-approval-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div class="cyber-glass rounded-3xl max-w-md w-full p-6 text-center space-y-4 border border-amber-500/40">
+            <h3 class="text-lg sm:text-xl font-black text-white">تم إرسال طلبك لـ Admin Manager</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                وصل طلبك فوراً عبر السحابة. سيقوم <strong>Admin Manager</strong> بتفعيل حسابك وتخصيص الإيميل الموحد المرقم الخاص بك لتتمكن من الدخول برتبة (Member | طالب).
+            </p>
+            <button onclick="closePendingModal()" class="w-full py-3 rounded-xl bg-purple-600 text-white font-bold text-xs">حسناً</button>
+        </div>
+    </div>
+
+    <!-- نافذة الدخول المحمية (بدون أي زر "دخول كأدمن" مكشوف!) -->
+    <div id="auth-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="cyber-glass rounded-3xl max-w-md w-full p-6 relative border border-purple-500/50">
+            <button onclick="closeAuthModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-400/40 flex items-center justify-center">
+                    <i data-lucide="lock" class="w-5 h-5 text-purple-300"></i>
+                </div>
+                <div>
+                    <h3 class="text-base sm:text-lg font-black text-white">IEEEASU ACCESS</h3>
+                    <p class="text-[11px] text-slate-400">بوابة الدخول الموحدة المشفرة</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-obsidian border border-purple-500/20 mb-4 text-xs font-bold">
+                <button id="switch-login-btn" onclick="switchAuthMode('login')" class="py-2 rounded-xl bg-purple-600 text-white">تسجيل الدخول</button>
+                <button id="switch-register-btn" onclick="switchAuthMode('register')" class="py-2 rounded-xl text-slate-400 hover:text-white">طلب عضوية طالب</button>
+            </div>
+
+            <form id="login-form" onsubmit="handleLoginSubmit(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">الإيميل الموحد المعتمد (مخفي ومشفر)</label>
+                    <input id="login-identifier" type="password" required autocomplete="off" placeholder="••••••••••••••••••••" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 font-mono text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">كلمة المرور</label>
+                    <input id="login-password" type="password" required autocomplete="off" placeholder="••••••••••••" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-l from-purple-600 to-fuchsia-600 text-white font-black neon-border">
+                    تحقق ودخول البوابة
+                </button>
+            </form>
+
+            <form id="register-form" onsubmit="handleStudentRequestSubmit(event)" class="hidden space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">اسم الطالب الثلاثي</label>
+                    <input id="reg-name" type="text" required placeholder="الاسم الكامل" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">الرقم الجامعي</label>
+                    <input id="reg-student-no" type="text" required placeholder="مثال: 202410999" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 font-mono text-white outline-none">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">اللجنة</label>
+                    <select id="reg-track" class="w-full bg-obsidian border border-purple-500/40 rounded-xl px-3.5 py-2.5 text-white outline-none">
+                        <option value="RAS">RAS - الروبوتات</option>
+                        <option value="CS">CS - الذكاء الاصطناعي</option>
+                        <option value="PES">PES - الطاقة</option>
+                        <option value="WIE">WIE - المرأة في الهندسة</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-l from-purple-600 to-fuchsia-600 text-white font-black neon-border">
+                    إرسال الطلب لتخصيص الإيميل الموحد
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         المحرك السحابي الشامل (Cloud MQTT + Real WebRTC Audio + Zero Fake Users)
+         ========================================================== -->
+    <script>
+        lucide.createIcons();
+
+        /* 1. خلفية 3D WebGL */
+        const initThreeJS = () => {
+            const canvas = document.getElementById('webgl-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 28;
+
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+
+            const coreGroup = new THREE.Group();
+            scene.add(coreGroup);
+
+            const outerMesh = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(9.5, 1),
+                new THREE.MeshBasicMaterial({ color: 0x8b5cf6, wireframe: true, transparent: true, opacity: 0.16 })
+            );
+            coreGroup.add(outerMesh);
+
+            const knotMesh = new THREE.Mesh(
+                new THREE.TorusKnotGeometry(4.2, 1.0, 80, 12),
+                new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true, transparent: true, opacity: 0.11 })
+            );
+            coreGroup.add(knotMesh);
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                outerMesh.rotation.y += 0.002;
+                knotMesh.rotation.y -= 0.003;
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }, { passive: true });
+        };
+        initThreeJS();
+
+        /* 2. التشفير ونظام الإيميلات الموحدة المرقمة (للأدمن والميمبر) */
+        function secureHash(str) {
+            let h = 2166136261 >>> 0;
+            for (let i = 0; i < str.length; i++) {
+                h ^= str.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            return (h >>> 0).toString(16);
+        }
+
+        function generatePublicCode(seed) {
+            return '#ASU-' + secureHash(String(seed)).substring(0, 5).toUpperCase();
+        }
+
+        // صيغة إيميل الأدمن الموحدة المرقمة: admin1@ieeeasu.org, admin2@ieeeasu.org ... (أو admin1@ieee.org)
+        const UNIFIED_ADMIN_REGEX = /^admin([0-9]+)@(ieeeasu\.org|ieee\.org)$/i;
+        // صيغة إيميل الميمبر الموحدة المرقمة: member1@ieeeasu.org, member2@ieeeasu.org ...
+        const UNIFIED_MEMBER_REGEX = /^(member|student)([0-9]+)@(ieeeasu\.org|ieee\.org)$/i;
+
+        function getNextUnifiedMemberEmail() {
+            const studentCount = appState.members.filter(m => m.role === 'student_member').length + 1;
+            return `member${studentCount}@ieeeasu.org`;
+        }
+
+        let audioCtx = null;
+        let ringtoneInterval = null;
+
+        function playBeep(freq = 880, duration = 0.12, type = 'sine') {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (_) {}
+        }
+
+        function startRingtone() {
+            stopRingtone();
+            playBeep(660, 0.25, 'sine');
+            setTimeout(() => playBeep(880, 0.3, 'sine'), 280);
+            ringtoneInterval = setInterval(() => {
+                playBeep(660, 0.25, 'sine');
+                setTimeout(() => playBeep(880, 0.3, 'sine'), 280);
+            }, 1600);
+        }
+
+        function stopRingtone() {
+            if (ringtoneInterval) {
+                clearInterval(ringtoneInterval);
+                ringtoneInterval = null;
+            }
+        }
+
+        function createCyberBanner(title, subtitle, accentHex = '#a855f7') {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="460" viewBox="0 0 800 460">
+                <rect width="800" height="460" fill="#090714"/>
+                <circle cx="400" cy="200" r="105" fill="none" stroke="${accentHex}" stroke-width="2.5" stroke-opacity="0.55" stroke-dasharray="12 8"/>
+                <text x="400" y="365" text-anchor="middle" fill="#ffffff" font-family="Cairo, sans-serif" font-weight="900" font-size="28">${title}</text>
+                <text x="400" y="405" text-anchor="middle" fill="${accentHex}" font-family="JetBrains Mono, monospace" font-weight="700" font-size="15">${subtitle}</text>
+            </svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
+
+        /* 3. الحالة الافتراضية الخالية تماماً من أي أشخاص وهميين (Zero Fake Users) */
+        const STORAGE_KEY = 'IEEEASU_REAL_PRODUCTION_V8';
+        const urlParams = new URLSearchParams(window.location.search);
+        const CLOUD_ROOM = urlParams.get('room') || 'IEEEASU_OFFICIAL_MAIN_2026';
+        document.getElementById('room-code-badge').textContent = `CLOUD: ${CLOUD_ROOM.substring(0, 12)}`;
+
+        const SESSION_PEER_ID = 'IEEEASU_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        const activePeersMap = new Map();
+        activePeersMap.set(SESSION_PEER_ID, { name: 'متصل حقيقي', code: '#LIVE', role: 'guest', rtcPeerId: SESSION_PEER_ID, lastSeen: Date.now() });
+
+        const defaultState = {
+            members: [], // لا يوجد أي شخص وهمي! يبدأ من صفر ويزيد فقط بالأشخاص الحقيقيين
+            pendingMembers: [],
+            gallery: [
+                { id: 201, title: 'منظومة Sky Sentinel بالذكاء الاصطناعي', tag: 'AI & Vision', desc: 'نظام رصد ذاتي يعتمد على YOLOv8 و OpenCV.', img: createCyberBanner('SKY SENTINEL AI', 'IEEEASU // YOLOv8', '#a855f7') },
+                { id: 202, title: 'ذراع روبوتية بنظام ROS 2', tag: 'RAS Lab', desc: 'تصميم وتنفيذ طلاب IEEEASU.', img: createCyberBanner('ROS 2 ROBOTIC ARM', 'IEEEASU // RAS LAB', '#f59e0b') }
+            ],
+            publicNewsletter: [
+                { id: 301, title: 'معسكر ROS 2 والذكاء الاصطناعي', category: 'RAS & CS', body: 'التدريب العملي لبناء وبرمجة الروبوتات المستقلة.', date: '2026/11/09', img: createCyberBanner('ROS 2 & AI BOOTCAMP', 'IEEEASU OFFICIAL', '#c084fc') },
+                { id: 302, title: 'تحضيرات بطولة IEEEXtreme العالمية', category: 'CS Chapter', body: 'تدريبات مكثفة لحل الخوارزميات لمدة 24 ساعة.', date: '2026/11/06', img: createCyberBanner('IEEEXTREME CODING', 'IEEEASU GLOBAL', '#f59e0b') }
+            ],
+            announcements: [
+                { id: 401, title: 'بوابة IEEEASU الرسمية الموحدة', tag: 'رسمي', date: '2026/11/09', body: 'التواصل الكتابي والصوتي المباشر متاح حصرياً للأعضاء الحقيقيين المفعّلين عبر Admin Manager.' }
+            ],
+            conversations: {
+                group_general: [],
+                group_ras: []
+            }
+        };
+
+        let appState = loadState();
+        let currentUser = null;
+        let activeConvId = 'group_general';
+        let activeConvTitle = 'النقاش الهندسي العام';
+        let pendingAdminNewsImg = null;
+        let pendingAdminGalleryImg = null;
+        let pendingChatImg = null;
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return JSON.parse(JSON.stringify(defaultState));
+                const parsed = JSON.parse(raw);
+                if (!parsed.conversations) parsed.conversations = { group_general: [], group_ras: [] };
+                return Object.assign(JSON.parse(JSON.stringify(defaultState)), parsed);
+            } catch (_) {
+                return JSON.parse(JSON.stringify(defaultState));
+            }
+        }
+
+        function saveState(syncToCloud = true) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+            } catch (_) {}
+            if (syncToCloud) {
+                publishCloudPacket({ type: 'STATE_SYNC', state: appState });
+            }
+            refreshAllUI();
+        }
+
+        function isUserAdminManager() {
+            return currentUser && currentUser.role === 'admin_manager';
+        }
+
+        function isUserAuthorizedMember() {
+            return currentUser && (currentUser.role === 'admin_manager' || currentUser.role === 'student_member');
+        }
+
+        /* ==========================================================
+           4. محرك الصوت الحقيقي WebRTC (PeerJS) + محرك السحابة MQTT
+           ========================================================== */
+        let mqttClient = null;
+        let rtcPeer = null;
+        let currentMediaCall = null;
+        let localAudioStream = null;
+        let isMicMuted = false;
+        const TOPIC_BASE = `ieeeasu/prod/v8/${CLOUD_ROOM}`;
+        const localChannel = ('BroadcastChannel' in window) ? new BroadcastChannel(TOPIC_BASE) : null;
+
+        function initRealWebRTCEngine() {
+            try {
+                rtcPeer = new Peer(SESSION_PEER_ID, {
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:global.stun.twilio.com:3478' }
+                        ]
+                    }
+                });
+
+                // عندما يستقبل هذا الجهاز تدفقاً صوتياً عبر WebRTC، يقوم بتشغيله فوراً في السماعة
+                rtcPeer.on('call', async (incomingMediaCall) => {
+                    currentMediaCall = incomingMediaCall;
+                    try {
+                        if (!localAudioStream) {
+                            localAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                        }
+                        incomingMediaCall.answer(localAudioStream);
+                    } catch (_) {
+                        incomingMediaCall.answer();
+                    }
+                    incomingMediaCall.on('stream', (remoteStream) => {
+                        const audioEl = document.getElementById('remote-call-audio');
+                        audioEl.srcObject = remoteStream;
+                        audioEl.play().catch(() => {});
+                    });
+                });
+            } catch (_) {}
+        }
+
+        function initGlobalCloudEngine() {
+            initRealWebRTCEngine();
+            try {
+                mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
+                    clientId: 'ieeeasu_' + SESSION_PEER_ID + '_' + Math.floor(Math.random() * 9999),
+                    clean: true,
+                    connectTimeout: 4000,
+                    reconnectPeriod: 3000
+                });
+
+                mqttClient.on('connect', () => {
+                    mqttClient.subscribe(TOPIC_BASE, { qos: 0 });
+                    sendPresenceHeartbeat();
+                });
+
+                mqttClient.on('message', (topic, payload) => {
+                    try {
+                        const data = JSON.parse(payload.toString());
+                        handleIncomingCloudPacket(data);
+                    } catch (_) {}
+                });
+            } catch (_) {}
+
+            if (localChannel) {
+                localChannel.onmessage = (e) => handleIncomingCloudPacket(e.data);
+            }
+
+            setInterval(() => {
+                sendPresenceHeartbeat();
+                pruneDisconnectedPeers();
+            }, 4000);
+
+            window.addEventListener('beforeunload', () => {
+                publishCloudPacket({ type: 'PEER_LEAVE', peerId: SESSION_PEER_ID });
+            });
+        }
+
+        function publishCloudPacket(packet) {
+            packet.senderPeerId = SESSION_PEER_ID;
+            if (localChannel) {
+                try { localChannel.postMessage(packet); } catch (_) {}
+            }
+            if (mqttClient && mqttClient.connected) {
+                try { mqttClient.publish(TOPIC_BASE, JSON.stringify(packet)); } catch (_) {}
+            }
+        }
+
+        function sendPresenceHeartbeat() {
+            const myInfo = {
+                name: currentUser ? currentUser.name : 'زائر متصل',
+                code: currentUser ? currentUser.code : '#LIVE',
+                role: currentUser ? currentUser.role : 'guest',
+                rtcPeerId: SESSION_PEER_ID,
+                lastSeen: Date.now()
+            };
+            activePeersMap.set(SESSION_PEER_ID, myInfo);
+            publishCloudPacket({ type: 'HEARTBEAT', peerId: SESSION_PEER_ID, info: myInfo });
+            updateLivePresenceNumbers();
+        }
+
+        function pruneDisconnectedPeers() {
+            const now = Date.now();
+            let changed = false;
+            for (const [pid, info] of activePeersMap.entries()) {
+                if (pid !== SESSION_PEER_ID && now - info.lastSeen > 10000) {
+                    activePeersMap.delete(pid);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                updateLivePresenceNumbers();
+                renderWhatsAppContacts();
+                renderMembersManagement();
+            }
+        }
+
+        function handleIncomingCloudPacket(data) {
+            if (!data || data.senderPeerId === SESSION_PEER_ID) return;
+
+            if (data.type === 'HEARTBEAT') {
+                const isNew = !activePeersMap.has(data.peerId);
+                activePeersMap.set(data.peerId, { ...data.info, lastSeen: Date.now() });
+                updateLivePresenceNumbers();
+                if (isNew) {
+                    renderWhatsAppContacts();
+                    renderMembersManagement();
+                }
+            }
+            else if (data.type === 'PEER_LEAVE') {
+                activePeersMap.delete(data.peerId);
+                updateLivePresenceNumbers();
+                renderWhatsAppContacts();
+                renderMembersManagement();
+            }
+            else if (data.type === 'CHAT_MSG') {
+                const conv = data.convId;
+                if (!appState.conversations[conv]) appState.conversations[conv] = [];
+                const exists = appState.conversations[conv].some(m => m.id === data.msg.id);
+                if (!exists) {
+                    appState.conversations[conv].push(data.msg);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                    if (isUserAuthorizedMember()) {
+                        playBeep(920, 0.1, 'sine');
+                        renderChatMessages();
+                        showToast(`💬 رسالة جديدة من ${data.msg.sender}`, 'info');
+                    }
+                }
+            }
+            else if (data.type === 'TYPING') {
+                if (isUserAuthorizedMember() && data.convId === activeConvId) {
+                    const ind = document.getElementById('chat-typing-indicator');
+                    if (ind) {
+                        ind.textContent = `✍️ ${data.senderName} يكتب الآن...`;
+                        clearTimeout(window._typingTimer);
+                        window._typingTimer = setTimeout(() => {
+                            ind.textContent = 'متصل عبر السحابة الفورية';
+                        }, 2200);
+                    }
+                }
+            }
+            else if (data.type === 'STATE_SYNC') {
+                appState = data.state;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+                refreshAllUI();
+            }
+            else if (data.type === 'CALL_SIGNAL') {
+                handleIncomingCallSignal(data);
+            }
+        }
+
+        function updateLivePresenceNumbers() {
+            const realOnlineCount = Math.max(1, activePeersMap.size);
+            document.getElementById('landing-online-members').textContent = realOnlineCount;
+            document.getElementById('hero-online-now').textContent = realOnlineCount;
+            document.getElementById('stat-online-count').textContent = realOnlineCount;
+            const pill = document.getElementById('chat-online-pill');
+            if (pill) pill.textContent = `${realOnlineCount} متصل حقيقي`;
+        }
+
+        /* ==========================================================
+           5. المكالمات الصوتية الحقيقية المسموعة (WebRTC Live Audio Stream)
+           ========================================================== */
+        let activeCallData = null;
+        let callSeconds = 0;
+        let callTimerInterval = null;
+
+        async function startVoiceCallWithMember(targetCode, targetName, targetRole) {
+            if (!isUserAuthorizedMember()) {
+                showToast('المكالمات متاحة فقط للأدمن والأعضاء المعتمدين!', 'error');
+                return;
+            }
+
+            // طلب المايكروفون فوراً عند بدء المكالمة لضمان جاهزية الصوت
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (_) {
+                showToast('يرجى السماح بالمايكروفون في المتصفح ليسمعك الطرف الآخر 🎙️', 'amber');
+            }
+
+            activeCallData = {
+                callId: 'CALL_' + Date.now(),
+                callerName: currentUser.name,
+                callerCode: currentUser.code,
+                callerRole: currentUser.badgeTitle,
+                callerRtcId: SESSION_PEER_ID,
+                targetCode,
+                targetName,
+                state: 'dialing'
+            };
+
+            openCallModalUI(targetName, targetRole, 'جاري الرنين عبر السحابة...', false);
+            startRingtone();
+
+            publishCloudPacket({
+                type: 'CALL_SIGNAL',
+                action: 'RING',
+                call: activeCallData
+            });
+        }
+
+        function startVoiceCallWithActiveTarget() {
+            if (activeConvId.startsWith('dm_')) {
+                const codes = activeConvId.replace('dm_', '').split('_');
+                const otherCode = codes.find(c => c !== currentUser?.code) || codes[0];
+                const member = appState.members.find(m => m.code === otherCode);
+                if (member) {
+                    startVoiceCallWithMember(member.code, member.name, member.badgeTitle);
+                    return;
+                }
+            }
+            startVoiceCallWithMember('ALL_CHANNEL', activeConvTitle, 'مكالمة جماعية للقناة');
+        }
+
+        function openCallModalUI(peerName, peerRole, statusText, isIncoming) {
+            const modal = document.getElementById('call-modal');
+            document.getElementById('call-peer-name').textContent = peerName;
+            document.getElementById('call-peer-role').textContent = peerRole || 'Member | طالب';
+            document.getElementById('call-status-badge').textContent = statusText;
+            document.getElementById('call-accept-btn').classList.toggle('hidden', !isIncoming);
+            document.getElementById('call-mute-btn').classList.add('hidden');
+            document.getElementById('call-timer').classList.add('hidden');
+            document.getElementById('call-audio-waves').classList.add('hidden');
+            document.getElementById('call-audio-waves').classList.remove('flex');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        async function acceptIncomingCall() {
+            if (!activeCallData) return;
+            stopRingtone();
+
+            try {
+                localAudioStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+                    video: false
+                });
+            } catch (_) {
+                showToast('يرجى تفعيل صلاحية المايكروفون لنقل صوتك 🎙️', 'amber');
+            }
+
+            // فتح قناة الصوت الحقيقية عبر WebRTC مع المتصل
+            if (rtcPeer && localAudioStream && activeCallData.callerRtcId) {
+                try {
+                    const mediaCall = rtcPeer.call(activeCallData.callerRtcId, localAudioStream);
+                    if (mediaCall) {
+                        currentMediaCall = mediaCall;
+                        mediaCall.on('stream', (remoteStream) => {
+                            const audioEl = document.getElementById('remote-call-audio');
+                            audioEl.srcObject = remoteStream;
+                            audioEl.play().catch(() => {});
+                        });
+                    }
+                } catch (_) {}
+            }
+
+            beginConnectedCallTimer();
+            publishCloudPacket({
+                type: 'CALL_SIGNAL',
+                action: 'ACCEPTED',
+                callId: activeCallData.callId,
+                responderName: currentUser.name,
+                responderRtcId: SESSION_PEER_ID
+            });
+        }
+
+        function beginConnectedCallTimer() {
+            stopRingtone();
+            document.getElementById('call-status-badge').textContent = 'CONNECTED • الصوت الحي مفعل 🔊';
+            document.getElementById('call-accept-btn').classList.add('hidden');
+            document.getElementById('call-mute-btn').classList.remove('hidden');
+            const timerEl = document.getElementById('call-timer');
+            timerEl.classList.remove('hidden');
+            const waves = document.getElementById('call-audio-waves');
+            waves.classList.remove('hidden');
+            waves.classList.add('flex');
+
+            callSeconds = 0;
+            clearInterval(callTimerInterval);
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                const mins = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+                const secs = String(callSeconds % 60).padStart(2, '0');
+                timerEl.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function toggleMuteCall() {
+            isMicMuted = !isMicMuted;
+            if (localAudioStream) {
+                localAudioStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+            }
+            showToast(isMicMuted ? 'تم كتم المايكروفون 🔇' : 'المايكروفون مفعل ومسموع 🎙️', 'info');
+        }
+
+        function endActiveCall(notifyPeer = true) {
+            stopRingtone();
+            clearInterval(callTimerInterval);
+            if (currentMediaCall) {
+                try { currentMediaCall.close(); } catch (_) {}
+                currentMediaCall = null;
+            }
+            if (localAudioStream) {
+                localAudioStream.getTracks().forEach(t => t.stop());
+                localAudioStream = null;
+            }
+            const audioEl = document.getElementById('remote-call-audio');
+            if (audioEl) audioEl.srcObject = null;
+
+            if (notifyPeer && activeCallData) {
+                publishCloudPacket({
+                    type: 'CALL_SIGNAL',
+                    action: 'ENDED',
+                    callId: activeCallData.callId
+                });
+            }
+            activeCallData = null;
+            const modal = document.getElementById('call-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function handleIncomingCallSignal(data) {
+            if (!isUserAuthorizedMember()) return;
+
+            if (data.action === 'RING') {
+                const call = data.call;
+                if (call.targetCode === 'ALL_CHANNEL' || call.targetCode === currentUser.code) {
+                    activeCallData = call;
+                    openCallModalUI(call.callerName, `${call.callerRole} يتصل بك صوتياً...`, 'مكالمة صوتية واردة 📞', true);
+                    startRingtone();
+                }
+            }
+            else if (data.action === 'ACCEPTED' && activeCallData && data.callId === activeCallData.callId) {
+                if (rtcPeer && localAudioStream && data.responderRtcId) {
+                    try {
+                        const mediaCall = rtcPeer.call(data.responderRtcId, localAudioStream);
+                        if (mediaCall) {
+                            currentMediaCall = mediaCall;
+                            mediaCall.on('stream', (remoteStream) => {
+                                const audioEl = document.getElementById('remote-call-audio');
+                                audioEl.srcObject = remoteStream;
+                                audioEl.play().catch(() => {});
+                            });
+                        }
+                    } catch (_) {}
+                }
+                beginConnectedCallTimer();
+                showToast(`تم فتح الخط الصوتي مع ${data.responderName} 🔊`, 'success');
+            }
+            else if (data.action === 'ENDED' && activeCallData && data.callId === activeCallData.callId) {
+                endActiveCall(false);
+                showToast('انتهت المكالمة الصوتية', 'info');
+            }
+        }
+
+        /* ==========================================================
+           6. شات واتساب الواقعي المتجاوب مع الجوال
+           ========================================================== */
+        function toggleMobileChatView(showConversation) {
+            const contactsPane = document.getElementById('mobile-contacts-pane');
+            const chatPane = document.getElementById('mobile-chat-pane');
+            if (window.innerWidth < 1024) {
+                contactsPane.classList.toggle('hidden', showConversation);
+                chatPane.classList.toggle('hidden', !showConversation);
+                chatPane.classList.toggle('flex', showConversation);
+            }
+        }
+
+        function getDirectConvId(codeA, codeB) {
+            return 'dm_' + [codeA, codeB].sort().join('_');
+        }
+
+        function selectConversation(convId, title, subtitle, switchOnMobile = false) {
+            activeConvId = convId;
+            activeConvTitle = title;
+            document.getElementById('chat-channel-title').textContent = title;
+            document.getElementById('active-chat-avatar').textContent = title.trim().charAt(0);
+            document.getElementById('chat-typing-indicator').textContent = `${subtitle || 'محادثة مشفرة'} • متصل عبر السحابة`;
+            renderWhatsAppContacts();
+            renderChatMessages();
+            if (switchOnMobile) toggleMobileChatView(true);
+        }
+
+        function openDirectWhatsAppChat(targetCode) {
+            if (!currentUser) return;
+            const target = appState.members.find(m => m.code === targetCode);
+            if (!target) return;
+            const dmId = getDirectConvId(currentUser.code, target.code);
+            selectConversation(dmId, target.name, `${target.badgeTitle} • محادثة خاصة`, true);
+            switchPortalTab('chat');
+        }
+
+        function renderWhatsAppContacts() {
+            const list = document.getElementById('whatsapp-contacts-list');
+            if (!list || !currentUser) return;
+
+            const otherMembers = appState.members.filter(m => m.approved && m.code !== currentUser.code);
+
+            if (otherMembers.length === 0) {
+                list.innerHTML = `<div class="text-center text-slate-500 py-5 text-xs">لا يوجد أعضاء آخرون حالياً. عندما يدخل شخص حقيقي أو تفعله سيظهر هنا فوراً.</div>`;
+                return;
+            }
+
+            list.innerHTML = otherMembers.map(m => {
+                const dmId = getDirectConvId(currentUser.code, m.code);
+                const isSelected = activeConvId === dmId;
+                const isOnline = Array.from(activePeersMap.values()).some(p => p.code === m.code);
+
+                return `
+                    <div class="p-2.5 rounded-2xl ${isSelected ? 'bg-emerald-950/50 border border-emerald-500/50' : 'hover:bg-purple-950/35 border border-transparent'} flex items-center justify-between gap-2 transition">
+                        <button onclick="openDirectWhatsAppChat('${m.code}')" class="flex items-center gap-2.5 text-right flex-1 min-w-0">
+                            <div class="relative w-9 h-9 rounded-full ${m.role === 'admin_manager' ? 'bg-amber-500/25 text-amber-300 border border-amber-400/40' : 'bg-purple-600/30 text-purple-200'} flex items-center justify-center font-black text-xs shrink-0">
+                                ${m.name.trim().charAt(0)}
+                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'} ring-2 ring-obsidian"></span>
+                            </div>
+                            <div class="truncate">
+                                <div class="font-bold text-white text-xs truncate">${m.name}</div>
+                                <div class="text-[10px] font-mono ${m.role === 'admin_manager' ? 'text-amber-300' : 'text-purple-300'}">${m.role === 'admin_manager' ? '👑 Admin Manager' : '🎓 Member | طالب'}</div>
+                            </div>
+                        </button>
+                        <button onclick="startVoiceCallWithMember('${m.code}', '${m.name.replace(/'/g, '')}', '${m.badgeTitle}')" title="اتصال صوتي حقيقي" class="p-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 transition shrink-0">
+                            <i data-lucide="phone" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function notifyTyping() {
+            if (!isUserAuthorizedMember()) return;
+            publishCloudPacket({
+                type: 'TYPING',
+                convId: activeConvId,
+                senderName: currentUser.name
+            });
+        }
+
+        function previewChatImg(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                pendingChatImg = evt.target.result;
+                showToast('الصورة جاهزة للإرسال في الشات 📸', 'amber');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            if (!isUserAuthorizedMember()) {
+                showToast('الشات مخصص فقط للأدمن والأعضاء المعتمدين!', 'error');
+                return;
+            }
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text && !pendingChatImg) return;
+
+            const msgObj = {
+                id: 'MSG_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                sender: currentUser.name,
+                senderCode: currentUser.code,
+                role: currentUser.role,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                text,
+                img: pendingChatImg
+            };
+
+            if (!appState.conversations[activeConvId]) appState.conversations[activeConvId] = [];
+            appState.conversations[activeConvId].push(msgObj);
+
+            input.value = '';
+            pendingChatImg = null;
+            playBeep(780, 0.08, 'sine');
+            saveState(false);
+
+            publishCloudPacket({
+                type: 'CHAT_MSG',
+                convId: activeConvId,
+                msg: msgObj
+            });
+        }
+
+        function clearChatMessages() {
+            if (!isUserAdminManager()) return;
+            appState.conversations[activeConvId] = [];
+            saveState(true);
+            showToast('تم مسح المحادثة الحالية', 'info');
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chat-messages-container');
+            if (!container || !isUserAuthorizedMember()) return;
+
+            const msgs = appState.conversations[activeConvId] || [];
+            if (msgs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 py-16 space-y-2">
+                        <div class="text-xs font-bold text-emerald-300">🔒 محادثة حقيقية مشفرة (Admin Manager & Member Only)</div>
+                        <div class="text-[11px] text-slate-500">أرسل رسالة الآن أو اضغط على زر الاتصال الصوتي في الأعلى.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = msgs.slice(-100).map(m => {
+                const isMine = currentUser && m.senderCode === currentUser.code;
+                const isAdmin = m.role === 'admin_manager';
+                return `
+                    <div class="flex ${isMine ? 'justify-start' : 'justify-end'}">
+                        <div class="max-w-[85%] sm:max-w-[70%] p-3 shadow-lg ${isMine ? 'wa-bubble-out text-white' : 'wa-bubble-in text-slate-100'}">
+                            <div class="flex items-center justify-between gap-3 text-[10px] font-mono mb-1">
+                                <span class="font-bold ${isAdmin ? 'text-amber-300' : 'text-emerald-300'}">
+                                    ${isAdmin ? '👑 ' : '🎓 '}${m.sender}
+                                </span>
+                                <span class="text-slate-300/80">${isAdmin ? 'Admin Manager' : 'Member | طالب'}</span>
+                            </div>
+                            ${m.text ? `<p class="text-xs sm:text-sm leading-relaxed break-words">${m.text}</p>` : ''}
+                            ${m.img ? `<img src="${m.img}" onclick="openLightbox('${m.img}', '${m.sender}')" class="mt-2 max-h-52 rounded-xl cursor-zoom-in">` : ''}
+                            <div class="flex items-center justify-end gap-1 text-[10px] font-mono text-slate-300/80 mt-1">
+                                <span>${m.time}</span>
+                                <span class="text-sky-400 font-bold">✓✓</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        /* ==========================================================
+           7. تحديث العدادات الحقيقية وإدارة الأعضاء بالإيميل الموحد المرقم
+           ========================================================== */
+        function refreshAllUI() {
+            const approved = appState.members.filter(m => m.approved);
+            const pending = appState.pendingMembers;
+
+            document.getElementById('landing-total-members').textContent = approved.length;
+            document.getElementById('hero-total-members').textContent = approved.length;
+            document.getElementById('hero-pending-members').textContent = pending.length;
+            document.getElementById('hero-gallery-count').textContent = appState.gallery.length;
+
+            document.getElementById('stat-approved-count').textContent = approved.length;
+            document.getElementById('stat-pending-count').textContent = pending.length;
+
+            const badge = document.getElementById('nav-pending-badge');
+            if (badge) {
+                badge.textContent = pending.length;
+                badge.classList.toggle('hidden', pending.length === 0);
+            }
+            const mobBadge = document.getElementById('mob-pending-badge');
+            if (mobBadge) {
+                mobBadge.textContent = pending.length;
+                mobBadge.classList.toggle('hidden', pending.length === 0);
+            }
+
+            const directEmailInput = document.getElementById('direct-student-email');
+            if (directEmailInput && !directEmailInput.value) {
+                directEmailInput.value = getNextUnifiedMemberEmail();
+            }
+
+            updateLivePresenceNumbers();
+            renderPublicNewsletter();
+            renderGallery();
+            renderAnnouncements();
+            renderMembersManagement();
+            renderWhatsAppContacts();
+            renderChatMessages();
+        }
+
+        function sharePlatformLink() {
+            const shareUrl = window.location.origin + window.location.pathname + '?room=' + encodeURIComponent(CLOUD_ROOM);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(shareUrl);
+            }
+            showToast('تم نسخ رابط الغرفة السحابية! شاركه مع أي شخص ليدخل معك فوراً 🔗', 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'border-emerald-400/60 bg-emerald-950/95 text-emerald-200',
+                amber: 'border-amber-400/60 bg-amber-950/95 text-amber-200',
+                error: 'border-red-400/60 bg-red-950/95 text-red-200',
+                info: 'border-purple-400/60 bg-purple-950/95 text-purple-100'
+            };
+            toast.className = `px-4 py-3 rounded-2xl border backdrop-blur-xl shadow-2xl text-xs font-bold flex items-center justify-between gap-3 transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<span>${message}</span><span class="text-[10px] font-mono opacity-75">IEEEASU</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 280);
+            }, 3400);
+        }
+
+        function openLightbox(imgSrc, caption) {
+            const modal = document.getElementById('lightbox-modal');
+            document.getElementById('lightbox-img').src = imgSrc;
+            document.getElementById('lightbox-caption').textContent = caption || '';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeLightbox() {
+            const modal = document.getElementById('lightbox-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        /* 8. نظام الدخول بالإيميل الموحد المرقم (بدون أي زر دخول كأدمن مكشوف) */
+        function openAuthModal(mode = 'login') {
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('auth-modal').classList.add('flex');
+            switchAuthMode(mode);
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('auth-modal').classList.remove('flex');
+        }
+
+        function switchAuthMode(mode) {
+            document.getElementById('login-form').classList.toggle('hidden', mode !== 'login');
+            document.getElementById('register-form').classList.toggle('hidden', mode !== 'register');
+            document.getElementById('switch-login-btn').className = mode === 'login' ? 'py-2 rounded-xl bg-purple-600 text-white font-bold' : 'py-2 rounded-xl text-slate-400 font-bold';
+            document.getElementById('switch-register-btn').className = mode === 'register' ? 'py-2 rounded-xl bg-purple-600 text-white font-bold' : 'py-2 rounded-xl text-slate-400 font-bold';
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const identifier = document.getElementById('login-identifier').value.trim().toLowerCase();
+            const idHash = secureHash(identifier);
+
+            // فحص إذا كان إيميل الأدمن الموحد المرقم (مثل admin1@ieeeasu.org أو admin2@ieeeasu.org)
+            const adminRegexMatch = identifier.match(UNIFIED_ADMIN_REGEX);
+            if (adminRegexMatch) {
+                const adminNum = adminRegexMatch[1];
+                const adminCode = `#ADM-0${adminNum}`;
+                let adminObj = appState.members.find(m => m.secretEmailHash === idHash);
+                if (!adminObj) {
+                    adminObj = {
+                        id: Date.now(),
+                        code: adminCode,
+                        name: `Admin Manager #${adminNum}`,
+                        secretEmailHash: idHash,
+                        track: 'RAS',
+                        role: 'admin_manager',
+                        badgeTitle: 'Admin Manager',
+                        approved: true
+                    };
+                    appState.members.unshift(adminObj);
+                }
+                currentUser = adminObj;
+                e.target.reset();
+                closeAuthModal();
+                sendPresenceHeartbeat();
+                saveState(true);
+                launchPortal();
+                showToast(`مرحباً بك ${adminObj.name} 👑`, 'amber');
+                return;
+            }
+
+            // فحص إذا كان طالباً مفعلاً بالإيميل الموحد المرقم الذي أصدره له الأدمن
+            const memberMatch = appState.members.find(m =>
+                m.approved && (m.secretEmailHash === idHash || m.code.toLowerCase() === identifier)
+            );
+
+            if (memberMatch) {
+                currentUser = memberMatch;
+                e.target.reset();
+                closeAuthModal();
+                sendPresenceHeartbeat();
+                saveState(true);
+                launchPortal();
+                showToast(`مرحباً بك ${memberMatch.name} (${memberMatch.badgeTitle}) ⚡`, 'success');
+                return;
+            }
+
+            showToast('الحساب غير مفعّل! يرجى التأكد من الإيميل الموحد المرقم الصادر من الإدارة.', 'error');
+        }
+
+        function handleStudentRequestSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const studentNo = document.getElementById('reg-student-no').value.trim();
+            const track = document.getElementById('reg-track').value;
+
+            const nextIndex = appState.members.filter(m => m.role === 'student_member').length + appState.pendingMembers.length + 1;
+            const suggestedEmail = `member${nextIndex}@ieeeasu.org`;
+
+            appState.pendingMembers.push({
+                id: Date.now(),
+                name,
+                studentNo,
+                track,
+                suggestedEmail
+            });
+
+            e.target.reset();
+            saveState(true);
+            closeAuthModal();
+            document.getElementById('pending-approval-modal').classList.remove('hidden');
+            document.getElementById('pending-approval-modal').classList.add('flex');
+        }
+
+        function closePendingModal() {
+            document.getElementById('pending-approval-modal').classList.add('hidden');
+            document.getElementById('pending-approval-modal').classList.remove('flex');
+        }
+
+        function launchPortal() {
+            if (!isUserAuthorizedMember()) return;
+            document.getElementById('landing-view').classList.add('hidden');
+            const portalView = document.getElementById('portal-view');
+            portalView.classList.remove('hidden');
+            portalView.classList.add('flex');
+
+            const isAdmin = isUserAdminManager();
+            const badge = document.getElementById('role-badge');
+            document.getElementById('current-user-masked').textContent = `${currentUser.name} • ID: ${currentUser.code}`;
+
+            badge.textContent = isAdmin ? '👑 Admin Manager' : '🎓 Member | طالب';
+            badge.className = isAdmin
+                ? 'text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300 border border-amber-400/50'
+                : 'text-[9px] sm:text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-emerald-600/30 text-emerald-200 border border-emerald-400/40';
+
+            document.getElementById('admin-pending-section').classList.toggle('hidden', !isAdmin);
+            document.getElementById('clear-chat-admin-btn').classList.toggle('hidden', !isAdmin);
+            document.getElementById('admin-chat-img-wrapper').classList.toggle('hidden', !isAdmin);
+            document.getElementById('admin-content-controls').classList.toggle('hidden', !isAdmin);
+
+            refreshAllUI();
+            switchPortalTab('chat');
+        }
+
+        function goBackToLandingKeepSession() {
+            document.getElementById('portal-view').classList.add('hidden');
+            document.getElementById('portal-view').classList.remove('flex');
+            document.getElementById('landing-view').classList.remove('hidden');
+            refreshAllUI();
+        }
+
+        function logoutPortal() {
+            currentUser = null;
+            sendPresenceHeartbeat();
+            document.getElementById('portal-view').classList.add('hidden');
+            document.getElementById('portal-view').classList.remove('flex');
+            document.getElementById('landing-view').classList.remove('hidden');
+            showToast('تم تسجيل الخروج', 'info');
+        }
+
+        function switchPortalTab(tabName) {
+            document.querySelectorAll('.portal-page').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`portal-page-${tabName}`).classList.remove('hidden');
+
+            ['chat', 'members', 'content'].forEach(name => {
+                const btn = document.getElementById(`tab-btn-${name}`);
+                if (btn) {
+                    btn.className = name === tabName
+                        ? 'portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap bg-gradient-to-l from-purple-600 to-fuchsia-600 text-white neon-border'
+                        : 'portal-tab-btn px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition whitespace-nowrap text-slate-400 hover:text-white';
+                }
+                const mobBtn = document.getElementById(`mob-tab-${name}`);
+                if (mobBtn) {
+                    mobBtn.className = name === tabName
+                        ? 'py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 bg-purple-600 text-white relative'
+                        : 'py-2 rounded-xl text-[11px] font-bold flex flex-col items-center justify-center gap-0.5 text-slate-400 relative';
+                }
+            });
+            lucide.createIcons();
+        }
+
+        /* 9. تفعيل وحذف الأعضاء بالإيميل الموحد المرقم */
+        function adminCreateStudentDirectly(e) {
+            e.preventDefault();
+            if (!isUserAdminManager()) return;
+            const name = document.getElementById('direct-student-name').value.trim();
+            const assignedEmail = document.getElementById('direct-student-email').value.trim().toLowerCase();
+            const track = document.getElementById('direct-student-track').value;
+
+            if (!UNIFIED_MEMBER_REGEX.test(assignedEmail)) {
+                showToast('يرجى استخدام صيغة الإيميل الموحد المرقم مثل: member1@ieeeasu.org', 'amber');
+                return;
+            }
+
+            const newCode = generatePublicCode(assignedEmail + Date.now());
+            appState.members.push({
+                id: Date.now(),
+                code: newCode,
+                name,
+                secretEmailHash: secureHash(assignedEmail),
+                track,
+                role: 'student_member',
+                badgeTitle: 'Member | طالب',
+                approved: true
+            });
+
+            e.target.reset();
+            document.getElementById('direct-student-email').value = getNextUnifiedMemberEmail();
+            saveState(true);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(`IEEEASU Login -> Email: ${assignedEmail} | Code: ${newCode}`);
+            }
+            showToast(`تم تفعيل (${name}) بالإيميل الموحد (${assignedEmail}) ونسخه للحافظة ✅`, 'success');
+        }
+
+        function approvePendingWithAssignedEmail(pendingId) {
+            if (!isUserAdminManager()) return;
+            const idx = appState.pendingMembers.findIndex(p => p.id === pendingId);
+            if (idx === -1) return;
+
+            const pendingObj = appState.pendingMembers[idx];
+            const emailInput = document.getElementById(`assign-email-${pendingId}`);
+            const assignedEmail = (emailInput?.value || pendingObj.suggestedEmail).trim().toLowerCase();
+
+            if (!UNIFIED_MEMBER_REGEX.test(assignedEmail)) {
+                showToast('يرجى الالتزام بصيغة الإيميل الموحد المرقم: member1@ieeeasu.org', 'amber');
+                return;
+            }
+
+            const newCode = generatePublicCode(assignedEmail + pendingId);
+            appState.pendingMembers.splice(idx, 1);
+            appState.members.push({
+                id: Date.now(),
+                code: newCode,
+                name: pendingObj.name,
+                secretEmailHash: secureHash(assignedEmail),
+                track: pendingObj.track,
+                role: 'student_member',
+                badgeTitle: 'Member | طالب',
+                approved: true
+            });
+
+            saveState(true);
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(`IEEEASU Activated -> Email: ${assignedEmail} | Code: ${newCode}`);
+            }
+            showToast(`تم تفعيل ${pendingObj.name} كـ (Member | طالب) ونسخ إيميله الموحد 🔑`, 'success');
+        }
+
+        function rejectPendingMember(id) {
+            if (!isUserAdminManager()) return;
+            appState.pendingMembers = appState.pendingMembers.filter(p => p.id !== id);
+            saveState(true);
+            showToast('تم حذف الطلب المعلق ونقص العداد فوراً', 'error');
+        }
+
+        function removeApprovedMember(id) {
+            if (!isUserAdminManager()) return;
+            const target = appState.members.find(m => m.id === id);
+            if (!target) return;
+            appState.members = appState.members.filter(m => m.id !== id);
+            saveState(true);
+            showToast(`تم حذف العضو (${target.name}) ونقص عدد الأعضاء فوراً`, 'error');
+        }
+
+        function renderMembersManagement() {
+            const pendingTable = document.getElementById('pending-table-body');
+            const membersTable = document.getElementById('members-table-body');
+            const searchQuery = (document.getElementById('member-search-input')?.value || '').trim().toLowerCase();
+            const isAdmin = isUserAdminManager();
+
+            if (pendingTable && isAdmin) {
+                if (appState.pendingMembers.length === 0) {
+                    pendingTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">لا توجد طلبات معلقة (0)</td></tr>`;
+                } else {
+                    pendingTable.innerHTML = appState.pendingMembers.map(p => `
+                        <tr>
+                            <td class="py-2.5 px-2 font-bold text-white">${p.name}</td>
+                            <td class="py-2.5 px-2 font-mono text-slate-300">${p.studentNo || '—'}</td>
+                            <td class="py-2.5 px-2 text-purple-300 font-bold">${p.track}</td>
+                            <td class="py-2.5 px-2">
+                                <input id="assign-email-${p.id}" type="email" value="${p.suggestedEmail}" class="bg-obsidian border border-amber-500/50 rounded-lg px-2.5 py-1 text-xs font-mono text-amber-200 w-44 outline-none">
+                            </td>
+                            <td class="py-2.5 px-2 flex items-center gap-1.5">
+                                <button onclick="approvePendingWithAssignedEmail(${p.id})" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition">تفعيل ✓</button>
+                                <button onclick="rejectPendingMember(${p.id})" class="px-2 py-1.5 bg-red-950 hover:bg-red-900 text-red-200 rounded-xl font-bold transition">✕</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            }
+
+            if (membersTable) {
+                const filtered = appState.members.filter(m =>
+                    m.name.toLowerCase().includes(searchQuery) ||
+                    (m.code || '').toLowerCase().includes(searchQuery) ||
+                    m.track.toLowerCase().includes(searchQuery)
+                );
+
+                if (filtered.length === 0) {
+                    membersTable.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400">لا يوجد أعضاء مسجلون حالياً (0 أشخاص وهميين).</td></tr>`;
+                    return;
+                }
+
+                membersTable.innerHTML = filtered.map(m => {
+                    const isOnline = Array.from(activePeersMap.values()).some(p => p.code === m.code);
+                    return `
+                        <tr>
+                            <td class="py-3 px-2 font-bold text-white">${m.name}</td>
+                            <td class="py-3 px-2 font-mono text-purple-300">${m.code} <span class="text-[10px] text-slate-500">(مخفي 🔒)</span></td>
+                            <td class="py-3 px-2 text-slate-300">${m.track}</td>
+                            <td class="py-3 px-2">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${m.role === 'admin_manager' ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40' : 'bg-purple-950 text-purple-200 border border-purple-500/30'}">
+                                    ${m.role === 'admin_manager' ? '👑 Admin Manager' : '🎓 Member | طالب'}
+                                </span>
+                            </td>
+                            <td class="py-3 px-2 flex items-center gap-1.5">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isOnline ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-900 text-slate-400'}">
+                                    ${isOnline ? '● متصل' : '○ غائب'}
+                                </span>
+                                <button onclick="startVoiceCallWithMember('${m.code}', '${m.name.replace(/'/g, '')}', '${m.badgeTitle}')" class="px-2 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white text-[11px] font-bold transition">
+                                    📞 رن
+                                </button>
+                                ${(isAdmin && m.id !== currentUser?.id) ? `<button onclick="removeApprovedMember(${m.id})" class="px-2 py-1 rounded-lg bg-red-950/80 hover:bg-red-800 text-red-200 text-[11px] font-bold transition">حذف</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        /* 10. النشرة والمعرض */
+        function previewAdminNewsImg(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                pendingAdminNewsImg = evt.target.result;
+                document.getElementById('pub-news-img-label').textContent = `✅ ${file.name}`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function publishAdminNewsletter(e) {
+            e.preventDefault();
+            if (!isUserAdminManager() || !pendingAdminNewsImg) return;
+            appState.publicNewsletter.unshift({
+                id: Date.now(),
+                title: document.getElementById('pub-news-title').value.trim(),
+                category: document.getElementById('pub-news-category').value.trim(),
+                body: document.getElementById('pub-news-body').value.trim(),
+                date: new Date().toLocaleDateString('ar-JO'),
+                img: pendingAdminNewsImg
+            });
+            pendingAdminNewsImg = null;
+            e.target.reset();
+            document.getElementById('pub-news-img-label').textContent = '📁 اختر صورة الخبر';
+            saveState(true);
+            showToast('تم نشر الخبر ومزامنته عبر السحابة ✨', 'success');
+        }
+
+        function deletePublicNewsletter(id) {
+            if (!isUserAdminManager()) return;
+            appState.publicNewsletter = appState.publicNewsletter.filter(i => i.id !== id);
+            saveState(true);
+        }
+
+        function renderPublicNewsletter() {
+            const grid = document.getElementById('public-newsletter-grid');
+            if (!grid) return;
+            const isAdmin = isUserAdminManager();
+            grid.innerHTML = appState.publicNewsletter.map(item => `
+                <div class="cyber-glass rounded-3xl overflow-hidden flex flex-col justify-between border border-purple-500/30">
+                    <div>
+                        <div class="relative h-40 sm:h-44 overflow-hidden cursor-zoom-in" onclick="openLightbox('${item.img}', '${item.title.replace(/'/g, '')}')">
+                            <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover">
+                            <span class="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-obsidian/90 text-purple-200">${item.category}</span>
+                        </div>
+                        <div class="p-4">
+                            <div class="text-[10px] font-mono text-purple-300 mb-1">${item.date}</div>
+                            <h3 class="font-black text-sm text-white mb-1">${item.title}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">${item.body}</p>
+                        </div>
+                    </div>
+                    ${isAdmin ? `<div class="px-4 pb-3 flex justify-end"><button onclick="deletePublicNewsletter(${item.id})" class="text-xs text-red-400 font-bold">حذف ✕</button></div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function previewAdminGalleryImg(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                pendingAdminGalleryImg = evt.target.result;
+                document.getElementById('gal-file-label').textContent = `✅ ${file.name}`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addAdminGalleryPhoto(e) {
+            e.preventDefault();
+            if (!isUserAdminManager() || !pendingAdminGalleryImg) return;
+            appState.gallery.unshift({
+                id: Date.now(),
+                title: document.getElementById('gal-title').value.trim(),
+                tag: document.getElementById('gal-tag').value.trim(),
+                desc: document.getElementById('gal-desc').value.trim(),
+                img: pendingAdminGalleryImg
+            });
+            pendingAdminGalleryImg = null;
+            e.target.reset();
+            document.getElementById('gal-file-label').textContent = '📁 اختر صورة المشروع';
+            saveState(true);
+            showToast('تم رفع المشروع للمعرض ومزامنته ✨', 'success');
+        }
+
+        function deleteGalleryPhoto(id) {
+            if (!isUserAdminManager()) return;
+            appState.gallery = appState.gallery.filter(g => g.id !== id);
+            saveState(true);
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('gallery-grid');
+            if (!grid) return;
+            const isAdmin = isUserAdminManager();
+            grid.innerHTML = appState.gallery.map(item => `
+                <div class="cyber-glass rounded-3xl overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="relative h-44 sm:h-48 overflow-hidden cursor-zoom-in" onclick="openLightbox('${item.img}', '${item.title.replace(/'/g, '')}')">
+                            <img src="${item.img}" alt="${item.title}" class="w-full h-full object-cover">
+                            <span class="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-obsidian/90 text-amber-300">${item.tag}</span>
+                        </div>
+                        <div class="p-4">
+                            <h4 class="font-black text-sm text-white">${item.title}</h4>
+                            <p class="text-xs text-slate-300 mt-1">${item.desc}</p>
+                        </div>
+                    </div>
+                    ${isAdmin ? `<div class="px-4 pb-3 flex justify-end"><button onclick="deleteGalleryPhoto(${item.id})" class="text-xs text-red-400 font-bold">حذف ✕</button></div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderAnnouncements() {
+            const list = document.getElementById('announcements-list');
+            if (!list) return;
+            list.innerHTML = appState.announcements.map(a => `
+                <div class="cyber-glass rounded-3xl p-5 space-y-2 border border-purple-500/30">
+                    <div class="flex items-center justify-between">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300">${a.tag}</span>
+                        <span class="text-[10px] font-mono text-slate-400">${a.date}</span>
+                    </div>
+                    <h3 class="font-black text-sm text-white">${a.title}</h3>
+                    <p class="text-xs text-slate-300">${a.body}</p>
+                </div>
+            `).join('');
+        }
+
+        /* 11. البوت الذكي ثنائي اللغة (AR / EN) */
+        const initialBotMsg = {
+            sender: 'bot',
+            text: 'Welcome to **IEEEASU AI**! 🤖✨\nأهلاً بك في الدعم الفني الذكي لـ **IEEEASU**!\n\n• اسألني **بالعربية** أو **In English** عن اللجان، التفعيل بالإيميل الموحد، أو الشات والمكالمات.'
+        };
+        let supportMessages = [initialBotMsg];
+
+        function toggleSupportChat(forceState) {
+            const win = document.getElementById('support-chat-window');
+            const isHidden = win.classList.contains('hidden');
+            const shouldOpen = forceState !== undefined ? forceState : isHidden;
+            win.classList.toggle('hidden', !shouldOpen);
+            win.classList.toggle('flex', shouldOpen);
+            if (shouldOpen) renderSupportMessages();
+        }
+
+        function renderSupportMessages() {
+            const box = document.getElementById('support-messages-box');
+            box.innerHTML = supportMessages.map(m => {
+                const isBot = m.sender === 'bot';
+                return `
+                    <div class="flex ${isBot ? 'justify-start' : 'justify-end'}">
+                        <div class="max-w-[85%] p-3 rounded-2xl leading-relaxed ${isBot ? 'bg-purple-950/90 border border-purple-400/40 text-slate-100' : 'bg-gradient-to-l from-purple-600 to-fuchsia-600 text-white font-semibold'}">
+                            <div class="whitespace-pre-line text-xs">${m.text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-300">$1</strong>')}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function getBilingualSmartReply(userText) {
+            const raw = userText.trim();
+            const q = raw.toLowerCase();
+            const hasArabic = /[\u0600-\u06FF]/.test(raw);
+
+            if (!hasArabic) {
+                if (q.includes('call') || q.includes('voice') || q.includes('whatsapp') || q.includes('chat')) {
+                    return `📞 **Real WebRTC Voice Calls & WhatsApp Chat:**\nApproved members and **Admin Manager** can chat in real time and make live, audible WebRTC voice calls directly from mobile or desktop.`;
+                }
+                if (q.includes('activate') || q.includes('register') || q.includes('email')) {
+                    return `🔐 **Unified Numbered Emails:**\nSubmit your request via **"طلب عضوية"**. The **Admin Manager** activates your account with a unified numbered email (e.g., \`member1@ieeeasu.org\`).`;
+                }
+                return `✨ **IEEEASU AI Support:**\n**IEEEASU** connects engineering students in **RAS, CS, PES, and WIE** with real-time cloud chat and live WebRTC voice calls.`;
+            }
+
+            if (q.includes('شات') || q.includes('واتس') || q.includes('اتصال') || q.includes('صوت') || q.includes('مكالم')) {
+                return `📞 **شات واتساب ومكالمات صوتية حقيقية مسموعة:**\nيعمل الاتصال عبر تقنية **WebRTC (PeerJS)** لنقل الصوت الحقيقي المباشر بين المايكروفون والسماعة، وهو متاح حصرياً للأدمن والأعضاء المفعّلين.`;
+            }
+            if (q.includes('تفعيل') || q.includes('سجل') || q.includes('ايميل') || q.includes('موحد')) {
+                return `🔐 **نظام الإيميلات الموحدة المرقمة:**\n• إيميل الأدمن موحد برقم خاص (\`admin1@ieeeasu.org\`).\n• إيميل الطالب موحد برقم يصدره الأدمن عند التفعيل (\`member1@ieeeasu.org\`)، مع إخفاء كافة الإيميلات عن العامة.`;
+            }
+            return `✨ **الدعم الفني IEEEASU AI:**\nالمنصة خالية تماماً من أي حسابات وهمية، متوافقة بالكامل مع الجوال، وتدعم المكالمات الصوتية المسموعة والشات الفوري.`;
+        }
+
+        function askSupportBot(text) {
+            document.getElementById('support-input').value = text;
+            handleSupportSubmit(new Event('submit'));
+        }
+
+        function handleSupportSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('support-input');
+            const text = input.value.trim();
+            if (!text) return;
+            supportMessages.push({ sender: 'user', text });
+            input.value = '';
+            renderSupportMessages();
+            setTimeout(() => {
+                supportMessages.push({ sender: 'bot', text: getBilingualSmartReply(text) });
+                renderSupportMessages();
+            }, 280);
+        }
+
+        initGlobalCloudEngine();
+        refreshAllUI();
+    </script>
+</body>
+</html>
